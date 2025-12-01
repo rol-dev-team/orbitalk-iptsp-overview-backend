@@ -19,24 +19,44 @@ class IptspCallDurationController extends Controller
             "Successfuliptsp." . $getAllTables[2]->TABLE_NAME
         ];
 
-            $todayDurations = DB::connection('mysql5')->selectOne("SELECT 
-                ROUND((SUM(orgBilledDuration) + SUM(terBilledDuration)) / 60) AS total_minutes
-            FROM $currentMonthTableName
-            WHERE INET_NTOA(orgIPAddress) = '59.152.98.66'
-            OR INET_NTOA(terIPAddress) = '59.152.98.66'
-            AND DATE(connectTime) = CURDATE()");
-
-
+            $todayDurations = DB::connection('mysql5')->selectOne("SELECT
+            COALESCE(
+                (SELECT ROUND(SUM(orgBilledDuration) / 60)
+                FROM $currentMonthTableName
+                WHERE INET_NTOA(orgIPAddress) = '59.152.98.66'
+                    AND DATE(FROM_UNIXTIME(connectTime / 1000)) = CURDATE()
+                    )
+            ,0)
+            + COALESCE(
+                (SELECT ROUND(SUM(terBilledDuration) / 60)
+                FROM $currentMonthTableName
+                WHERE INET_NTOA(terIPAddress) = '59.152.98.66'
+                    AND DATE(FROM_UNIXTIME(connectTime / 1000)) = CURDATE()
+                    )
+            ,0) AS total_minutes");
 
             $totalMinutes = 0;
 
             foreach ($tables as $table) {
                 $result = DB::connection('mysql5')->selectOne("SELECT
-                ROUND((SUM(orgBilledDuration) + SUM(terBilledDuration)) / 60 / DAY(LAST_DAY(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)))) AS avg_daily_minutes
-                FROM $table
-                WHERE (INET_NTOA(orgIPAddress) = '59.152.98.66' OR INET_NTOA(terIPAddress) = '59.152.98.66')
-                AND FROM_UNIXTIME(connectTime / 1000) >= DATE_SUB(DATE_SUB(CURDATE(), INTERVAL DAYOFMONTH(CURDATE())-1 DAY), INTERVAL 1 MONTH)
-                AND FROM_UNIXTIME(connectTime / 1000) < DATE_SUB(CURDATE(), INTERVAL DAYOFMONTH(CURDATE())-1 DAY)");
+                    (
+                        COALESCE(
+                        (SELECT SUM(orgBilledDuration) / 60
+                        FROM $table
+                        WHERE INET_NTOA(orgIPAddress) = '59.152.98.66'
+                            AND FROM_UNIXTIME(connectTime / 1000) >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                            AND FROM_UNIXTIME(connectTime / 1000) < DATE_FORMAT(CURDATE(), '%Y-%m-01'))
+                        ,0)
+                    + COALESCE(
+                        (SELECT SUM(terBilledDuration) / 60
+                        FROM $table
+                        WHERE INET_NTOA(terIPAddress) = '59.152.98.66'
+                            AND FROM_UNIXTIME(connectTime / 1000) >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                            AND FROM_UNIXTIME(connectTime / 1000) < DATE_FORMAT(CURDATE(), '%Y-%m-01'))
+                        ,0)
+                    ) 
+                    / DAY(LAST_DAY(CURDATE() - INTERVAL 1 MONTH)) AS avg_daily_minutes;
+                    ");
 
                 $totalMinutes += $result->avg_daily_minutes ?? 0;
             }
