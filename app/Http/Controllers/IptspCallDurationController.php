@@ -236,4 +236,75 @@ class IptspCallDurationController extends Controller
         }
     }
 
+
+
+    public function getCallDurationReport(Request $request)
+    {
+        try {
+            $startDate = $request->start_date ?? '2025-10-01';
+            $endDate   = $request->end_date ?? '2025-10-30';
+
+            $filterIptspToIptsp     = $request->iptsp_to_iptsp ?? null;
+            $filterIptspToOrbitalk  = $request->iptsp_to_orbitalk ?? 'orbitalk_to_orbitalk';
+            $filterGsmToIptsp  = $request->gsm_to_iptsp ?? null;
+
+            $getAllTables = getCdrTableByMonth();
+
+            $tables = [
+                "Successfuliptsp." . $getAllTables[0]->TABLE_NAME,
+                "Successfuliptsp." . $getAllTables[1]->TABLE_NAME
+            ];
+
+            $where = "";
+
+            // Call Type filters
+            if ($filterIptspToIptsp) {
+                $where .= " AND INET_NTOA(orgIPAddress) = '59.152.98.66' AND (INET_NTOA(terIPAddress) = '59.152.98.66')";
+            }
+
+            if ($filterIptspToOrbitalk) {
+                $where .= " AND (INET_NTOA(orgIPAddress) = '59.152.98.66'
+                AND INET_NTOA(terIPAddress) IN  ('59.152.98.70','202.59.208.119','119.40.82.242') )";
+            }
+
+            if ($filterGsmToIptsp) {
+                $where .= "AND INET_NTOA(orgIPAddress) IN ('59.152.98.70','10.246.29.74','172.20.15.106')  
+                AND INET_NTOA(terIPAddress) = '59.152.98.66' )";
+            }
+
+            $merged = [];
+
+            foreach ($tables as $table) {
+
+                $rows = DB::connection('mysql5')->select("
+                    SELECT 
+                        FROM_UNIXTIME(connectTime / 1000) AS connect_time,
+                        FROM_UNIXTIME(disconnectTime / 1000) AS disconnect_time,
+                        INET_NTOA(terIPAddress) AS terIPAddress,
+                        INET_NTOA(orgIPAddress) AS orgIPAddress,
+                        callingStationID,
+                        calledStationID,
+                        terBilledDuration / 60 AS duration_minutes
+                    FROM $table
+                    WHERE FROM_UNIXTIME(connectTime / 1000) BETWEEN '$startDate 00:00:00' AND '$endDate 23:59:59'
+                    $where
+                ");
+
+                $merged = array_merge($merged, $rows);
+            }
+
+            return response()->json([
+                'status' => true,
+                'data' => $merged,
+                'message' => "success"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+            'status' => false,
+            'message' => $e->getMessage()
+            ]);
+        }
+    }
+
 }
