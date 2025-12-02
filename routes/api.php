@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrbiTalkCallDurationController;
 use App\Http\Controllers\IptspCallDurationController;
 use App\Http\Controllers\OrbitalkReportController;
+use App\Http\Controllers\UserController;
 
 // orbitalk dashboard
 

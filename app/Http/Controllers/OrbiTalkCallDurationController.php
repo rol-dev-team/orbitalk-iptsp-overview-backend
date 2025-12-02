@@ -257,29 +257,124 @@ class OrbiTalkCallDurationController extends Controller
         }
     }
 
+    // public function getCallDurationReport(Request $request)
+    // {
+    //     try {
+    //         $mapping = getDynamicTables();
+    //         $start = "2025-10";
+    //         $end   = "2025-10";
+
+    //         $tableNamesWithMonth = filterRangeWithNext($mapping, $start, $end);
+    //         $tables = array_values($tableNamesWithMonth);
+    //         return $tables;
+
+    //         $startDate = $request->start_date ?? '2025-10-01';
+    //         $endDate   = $request->end_date ?? '2025-10-31';
+
+    //         $filterOrbitalkToOrbitalk     = $request->orbitalk_to_orbitalk ?? null;
+    //         $filterIncomingGsmToOrbitalk  = $request->incoming_gsm_to_orbitalk ?? 'orbitalk_to_orbitalk';
+    //         $filterOrbitalkToIptsp        = $request->orbitalk_to_iptsp ?? null;
+    //         $filterOutgoingOrbitalkToGsm  = $request->outgoing_orbitalk_to_gsm ?? null;
+
+
+
+    //         $where = "";
+
+    //         // Call Type filters
+    //         if ($filterOrbitalkToOrbitalk) {
+    //             $where .= " AND (INET_NTOA(terIPAddress) = '59.152.98.70' AND INET_NTOA(orgIPAddress) = '59.152.98.70')";
+    //         }
+
+    //         if ($filterIncomingGsmToOrbitalk) {
+    //             $where .= " AND (INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+    //             AND INET_NTOA(terIPAddress) = '59.152.98.70')";
+    //         }
+
+    //         if ($filterOrbitalkToIptsp) {
+    //             $where .= " AND (INET_NTOA(orgIPAddress) = '59.152.98.70'
+    //             AND INET_NTOA(terIPAddress) IN ('59.152.98.66','202.59.208.119','119.40.82.242'))";
+    //         }
+
+    //         if ($filterOutgoingOrbitalkToGsm) {
+    //             $where .= " AND (INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+    //             AND INET_NTOA(orgIPAddress) = '59.152.98.70')";
+    //         }
+
+    //         $merged = [];
+
+    //         foreach ($tables as $table) {
+
+    //             $rows = DB::connection('mysql5')->select("
+    //                 SELECT
+    //                     FROM_UNIXTIME(connectTime / 1000) AS connect_time,
+    //                     FROM_UNIXTIME(disconnectTime / 1000) AS disconnect_time,
+    //                     INET_NTOA(terIPAddress) AS terIPAddress,
+    //                     INET_NTOA(orgIPAddress) AS orgIPAddress,
+    //                     callingStationID,
+    //                     calledStationID,
+    //                     terBilledDuration / 60 AS duration_minutes
+    //                 FROM $table
+    //                 WHERE FROM_UNIXTIME(connectTime / 1000) BETWEEN '$startDate 00:00:00' AND '$endDate 23:59:59'
+    //                 $where
+    //             ");
+
+    //             $merged = array_merge($merged, $rows);
+    //         }
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'data' => $merged,
+    //             'message' => "success"
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //         'status' => false,
+    //         'message' => $e->getMessage()
+    //         ]);
+    //     }
+    // }
+
     public function getCallDurationReport(Request $request)
     {
         try {
-            $mapping = getDynamicTables();
-            $start = "2019-08";
-            $end   = "2019-05";
 
-            $tables = filterRangeWithNext($mapping, $start, $end);
+            return $rows = DB::connection('mysql5')->select("SELECT 
+    cdr.terClientAccountID,
+    cdr.orgClientAccountID,
+    terclientdetails.cdCustomerName AS ter_client_name,
+    orgclientdetails.cdCustomerName AS org_client_name,
+    FROM_UNIXTIME(cdr.connectTime / 1000) AS connect_time,
+    FROM_UNIXTIME(cdr.disconnectTime / 1000) AS disconnect_time,
+    INET_NTOA(cdr.terIPAddress) AS terIPAddress,
+    INET_NTOA(cdr.orgIPAddress) AS orgIPAddress,
+    cdr.callingStationID,
+    cdr.calledStationID,
+    cdr.terBilledDuration / 60 AS duration_minutes
+FROM Successfuliptsp.vbSuccessfulCDR_678 cdr
+INNER JOIN iTelBillingiptsp.vbClientDetails terclientdetails ON terclientdetails.cdClientAccountID = cdr.terClientAccountID
+INNER JOIN iTelBillingiptsp.vbClientDetails orgclientdetails ON orgclientdetails.cdClientAccountID = cdr.orgClientAccountID
+WHERE cdr.connectTime BETWEEN UNIX_TIMESTAMP('2025-10-01 00:00:00')*1000
+                         AND UNIX_TIMESTAMP('2025-10-01 23:59:59')*1000
+LIMIT 10");
+
+            $mapping = getDynamicTables();
+            $start = "2025-10";
+            $end   = "2025-10";
+
+            $tableNamesWithMonth = filterRangeWithNext($mapping, $start, $end);
+            $tables = array_values($tableNamesWithMonth);
+            return $tables;
 
             $startDate = $request->start_date ?? '2025-10-01';
-            $endDate   = $request->end_date ?? '2025-10-30';
+            $endDate   = $request->end_date ?? '2025-10-31';
 
             $filterOrbitalkToOrbitalk     = $request->orbitalk_to_orbitalk ?? null;
             $filterIncomingGsmToOrbitalk  = $request->incoming_gsm_to_orbitalk ?? 'orbitalk_to_orbitalk';
             $filterOrbitalkToIptsp        = $request->orbitalk_to_iptsp ?? null;
             $filterOutgoingOrbitalkToGsm  = $request->outgoing_orbitalk_to_gsm ?? null;
 
-            $getAllTables = getCdrTableByMonth();
 
-            // $tables = [
-            //     "Successfuliptsp." . $getAllTables[0]->TABLE_NAME,
-            //     "Successfuliptsp." . $getAllTables[1]->TABLE_NAME
-            // ];
 
             $where = "";
 
@@ -337,6 +432,4 @@ class OrbiTalkCallDurationController extends Controller
             ]);
         }
     }
-
-
 }
