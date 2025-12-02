@@ -71,13 +71,10 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE())
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND (
-                            p.pyTransactionID IS NULL
-                            OR (p.pyTransactionID != '' AND p.pyTransactionID != 'Waiver')
-                        )
-                    AND c.clParentAccountID IN ('26005','-1')
+                    AND p.pyAmount > 0
+                    
                     AND c.clCustomerID LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -95,13 +92,9 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND (
-                            p.pyTransactionID IS NULL
-                            OR (p.pyTransactionID != '' AND p.pyTransactionID != 'Waiver')
-                        )
-                    AND c.clParentAccountID IN ('26005','-1')
+                    AND p.pyAmount > 0
                     AND c.clCustomerID LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -117,13 +110,10 @@ class DashboardController extends Controller
                     JOIN iTelBillingiptsp.vbPaymentType t ON p.pyPaymentGatewayType = t.ptID
                     JOIN iTelBillingiptsp.vbClientDetails d ON c.clAccountID = d.cdClientAccountID
                     WHERE DATE(FROM_UNIXTIME(p.pyDate/1000)) = CURDATE()
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND (
-                            p.pyTransactionID IS NULL
-                            OR (p.pyTransactionID != '' AND p.pyTransactionID != 'Waiver')
-                        )
-                    AND c.clParentAccountID IN ('26005','-1')
+                    AND p.pyAmount > 0
+                    
                     AND c.clCustomerID LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -141,13 +131,10 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
-                    AND (
-                            p.pyTransactionID IS NULL 
-                            OR (p.pyTransactionID != 'Waiver' AND p.pyTransactionID != '')
-                        )
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND c.clParentAccountID IN ('26005','-1')
+                    AND p.pyAmount > 0
+                    
                     AND c.clCustomerID LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -165,13 +152,10 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE())
-                    AND (
-                            p.pyTransactionID IS NULL 
-                            OR (p.pyTransactionID != 'Waiver' AND p.pyTransactionID != '')
-                        )
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND c.clParentAccountID IN ('26005','-1')
+                    AND p.pyAmount > 0
+                    
                     AND c.clCustomerID LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -231,7 +215,7 @@ class DashboardController extends Controller
             $allTables = [
                 "Successfuliptsp." . $tables[0]->TABLE_NAME,
                 "Successfuliptsp." . $tables[1]->TABLE_NAME,
-                "Successfuliptsp." . $tables[2]->TABLE_NAME,
+                // "Successfuliptsp." . $tables[2]->TABLE_NAME,
             ];
 
             $buildUnion = function($tableArray) {
@@ -242,7 +226,8 @@ class DashboardController extends Controller
 
             
             $incoming = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_this_month
+                
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_this_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.70'
@@ -254,7 +239,7 @@ class DashboardController extends Controller
             $outgoing = DB::connection('mysql5')->selectOne("
                 SELECT 
                     ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_this_month,
-                    ROUND(SUM(orgBilledAmount) - ((SUM(orgBilledDuration)/60) * 0.14), 0)
+                    (ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) - (ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) * 0.03 + ROUND(((SUM(orgBilledDuration)/60) * 0.14), 0)))
                         AS outgoing_bill_this_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) = '59.152.98.70'
@@ -269,7 +254,7 @@ class DashboardController extends Controller
 
             
             $incomingLast = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_last_month
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_last_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.70'
@@ -281,7 +266,7 @@ class DashboardController extends Controller
             $outgoingLast = DB::connection('mysql5')->selectOne("
                 SELECT 
                     ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_last_month,
-                    ROUND(SUM(orgBilledAmount) - ((SUM(orgBilledDuration)/60) * 0.14), 0)
+                    (ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) - (ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) * 0.03 + ROUND(((SUM(orgBilledDuration)/60) * 0.14), 0)))
                         AS outgoing_bill_last_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) = '59.152.98.70'
@@ -296,7 +281,7 @@ class DashboardController extends Controller
 
             
             $incomingToday = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_today
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_today
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.70'
@@ -304,7 +289,7 @@ class DashboardController extends Controller
             ");
 
             $outgoingToday = DB::connection('mysql5')->selectOne("
-                SELECT ROUND(SUM(orgBilledAmount) - ((SUM(orgBilledDuration)/60) * 0.14), 0) AS outgoing_bill_today
+                SELECT (ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) - (ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) * 0.03 + ROUND(((SUM(orgBilledDuration)/60) * 0.14), 0))) AS outgoing_bill_today
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) = '59.152.98.70'
                 AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
@@ -315,12 +300,12 @@ class DashboardController extends Controller
                                 + intval($outgoingToday->outgoing_bill_today ?? 0);
 
             return response()->json([
-                "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
+                // "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
                 "incoming_bill_this_month"    => intval($incoming->incoming_bill_this_month ?? 0),
                 "outgoing_bill_this_month"    => intval($outgoing->outgoing_bill_this_month ?? 0),
                 "gross_profit_this_month"     => intval($grossProfit),
 
-                "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
+                // "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
                 "incoming_bill_last_month"    => intval($incomingLast->incoming_bill_last_month ?? 0),
                 "outgoing_bill_last_month"    => intval($outgoingLast->outgoing_bill_last_month ?? 0),
                 "gross_profit_last_month"     => intval($grossProfitLast),
@@ -369,7 +354,7 @@ class DashboardController extends Controller
             $allTables = [
                 "Successfuliptsp." . $tables[0]->TABLE_NAME,
                 "Successfuliptsp." . $tables[1]->TABLE_NAME,
-                "Successfuliptsp." . $tables[2]->TABLE_NAME,
+                // "Successfuliptsp." . $tables[2]->TABLE_NAME,
             ];
 
             
@@ -392,9 +377,8 @@ class DashboardController extends Controller
 
             $outgoing = DB::connection('mysql5')->selectOne("
                 SELECT 
-                    ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_this_month,
-                    ROUND(SUM(orgBilledAmount), 0) AS outgoing_bill_this_month
-                FROM $unionAll
+                    ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) AS outgoing_bill_this_month
+                    FROM $unionAll
                 WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(orgIPAddress) = '59.152.98.70'
                 AND FROM_UNIXTIME(connectTime/1000)
@@ -417,8 +401,8 @@ class DashboardController extends Controller
 
             $outgoingLast = DB::connection('mysql5')->selectOne("
                 SELECT 
-                    ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_last_month,
-                    ROUND(SUM(orgBilledAmount), 0) AS outgoing_bill_last_month
+                    
+                    ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) AS outgoing_bill_last_month
                 FROM $unionAll
                 WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(orgIPAddress) = '59.152.98.70'
@@ -431,12 +415,12 @@ class DashboardController extends Controller
                             + intval($outgoingLast->outgoing_bill_last_month ?? 0);
 
             return response()->json([
-                "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
+                // "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
                 "incoming_bill_this_month"    => intval($incoming->incoming_bill_this_month ?? 0),
                 "outgoing_bill_this_month"    => intval($outgoing->outgoing_bill_this_month ?? 0),
                 "revenue_this_month"          => $revenueThisMonth,
 
-                "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
+                // "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
                 "incoming_bill_last_month"    => intval($incomingLast->incoming_bill_last_month ?? 0),
                 "outgoing_bill_last_month"    => intval($outgoingLast->outgoing_bill_last_month ?? 0),
                 "revenue_last_month"          => $revenueLastMonth,
@@ -522,18 +506,13 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE())
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND (
-                            p.pyTransactionID IS NULL
-                            OR (p.pyTransactionID != '' AND p.pyTransactionID != 'Waiver')
-                        )
+                    AND p.pyAmount > 0
                     
-                    
+                    AND c.clCustomerID NOT LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
-            // AND c.clParentAccountID NOT IN ('26005','-1')
-            // AND c.clCustomerID NOT LIKE '8801%'
             
             $lastMonthSQL = "
                 SELECT ROUND(SUM(Amount)) AS LastMonth_Recharged
@@ -548,13 +527,9 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND (
-                            p.pyTransactionID IS NULL
-                            OR (p.pyTransactionID != '' AND p.pyTransactionID != 'Waiver')
-                        )
-                    
-                    
+                    AND p.pyAmount > 0
+                    AND c.clCustomerID NOT LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -570,13 +545,10 @@ class DashboardController extends Controller
                     JOIN iTelBillingiptsp.vbPaymentType t ON p.pyPaymentGatewayType = t.ptID
                     JOIN iTelBillingiptsp.vbClientDetails d ON c.clAccountID = d.cdClientAccountID
                     WHERE DATE(FROM_UNIXTIME(p.pyDate/1000)) = CURDATE()
-                    AND p.pyAmount NOT IN (0, -1)
-                    AND (
-                            p.pyTransactionID IS NULL
-                            OR (p.pyTransactionID != '' AND p.pyTransactionID != 'Waiver')
-                        )
+                    AND p.pyAmount > 0
                     
-                    
+                    AND c.clCustomerID NOT LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -594,13 +566,10 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
-                    AND (
-                            p.pyTransactionID IS NULL 
-                            OR (p.pyTransactionID != 'Waiver' AND p.pyTransactionID != '')
-                        )
-                    AND p.pyAmount NOT IN (0, -1)
+                    AND p.pyAmount > 0
                     
-                    
+                    AND c.clCustomerID NOT LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -618,13 +587,10 @@ class DashboardController extends Controller
                     WHERE FROM_UNIXTIME(p.pyDate/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE())
-                    AND (
-                            p.pyTransactionID IS NULL 
-                            OR (p.pyTransactionID != 'Waiver' AND p.pyTransactionID != '')
-                        )
-                    AND p.pyAmount NOT IN (0, -1)
+                    AND p.pyAmount > 0
                     
-                    
+                    AND c.clCustomerID NOT LIKE '8801%'
+                    AND p.pyPaymentGatewayType = 19
                 ) tbl;
             ";
 
@@ -695,7 +661,7 @@ class DashboardController extends Controller
 
             
             $incoming = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_this_month
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_this_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.66'
@@ -707,10 +673,18 @@ class DashboardController extends Controller
             $outgoing = DB::connection('mysql5')->selectOne("
                 SELECT 
                     ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_this_month,
-                    ROUND(SUM(orgBilledAmount) - ((SUM(orgBilledDuration)/60) * 0.14), 0)
-                        AS outgoing_bill_this_month
+                    ((ROUND(SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END))
+                    - (ROUND((SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)), 0) * 0.03
+                    + ROUND((SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)) * 0.14, 0)))
+
+                    + 
+
+                    ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.35, 0)
+                    - (ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.35, 0) * 0.03
+                    + ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.14, 0)))
+                    AS outgoing_bill_last_month
                 FROM $unionAll
-                WHERE INET_NTOA(orgIPAddress) = '59.152.98.66'
+                WHERE INET_NTOA(orgIPAddress) != '59.152.98.70'
                 AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND FROM_UNIXTIME(connectTime/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
@@ -722,7 +696,7 @@ class DashboardController extends Controller
 
             
             $incomingLast = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_last_month
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_last_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.66'
@@ -734,10 +708,18 @@ class DashboardController extends Controller
             $outgoingLast = DB::connection('mysql5')->selectOne("
                 SELECT 
                     ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_last_month,
-                    ROUND(SUM(orgBilledAmount) - ((SUM(orgBilledDuration)/60) * 0.14), 0)
+                    ((ROUND(SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END))
+                    - (ROUND((SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)), 0) * 0.03
+                    + ROUND((SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)) * 0.14, 0)))
+
+                    + 
+
+                    ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.35, 0)
+                    - (ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.35, 0) * 0.03
+                    + ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.14, 0)))
                         AS outgoing_bill_last_month
                 FROM $unionAll
-                WHERE INET_NTOA(orgIPAddress) = '59.152.98.66'
+                WHERE INET_NTOA(orgIPAddress) != '59.152.98.70'
                 AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND FROM_UNIXTIME(connectTime/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
@@ -749,7 +731,7 @@ class DashboardController extends Controller
 
             
             $incomingToday = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_today
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_today
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.66'
@@ -757,9 +739,17 @@ class DashboardController extends Controller
             ");
 
             $outgoingToday = DB::connection('mysql5')->selectOne("
-                SELECT ROUND(SUM(orgBilledAmount) - ((SUM(orgBilledDuration)/60) * 0.14), 0) AS outgoing_bill_today
+                SELECT ((ROUND(SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END))
+                - (ROUND((SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)), 0) * 0.03
+                + ROUND((SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)) * 0.14, 0)))
+
+                + 
+
+                ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.35, 0)
+                - (ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.35, 0) * 0.03
+                + ROUND((SUM(CASE WHEN orgBilledAmount = 0 THEN orgBilledDuration END) / 60) * 0.14, 0))) AS outgoing_bill_today
                 FROM $unionAll
-                WHERE INET_NTOA(orgIPAddress) = '59.152.98.66'
+                WHERE INET_NTOA(orgIPAddress) != '59.152.98.70'
                 AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND DATE(FROM_UNIXTIME(connectTime/1000)) = CURDATE()
             ");
@@ -768,12 +758,12 @@ class DashboardController extends Controller
                                 + intval($outgoingToday->outgoing_bill_today ?? 0);
 
             return response()->json([
-                "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
+                // "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
                 "incoming_bill_this_month"    => intval($incoming->incoming_bill_this_month ?? 0),
                 "outgoing_bill_this_month"    => intval($outgoing->outgoing_bill_this_month ?? 0),
                 "gross_profit_this_month"     => intval($grossProfit),
 
-                "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
+                // "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
                 "incoming_bill_last_month"    => intval($incomingLast->incoming_bill_last_month ?? 0),
                 "outgoing_bill_last_month"    => intval($outgoingLast->outgoing_bill_last_month ?? 0),
                 "gross_profit_last_month"     => intval($grossProfitLast),
@@ -796,11 +786,12 @@ class DashboardController extends Controller
         }
     }
 
+
+
     public function revenueIptsp()
     {
         try {
 
-            
             $tables = DB::connection('mysql5')->select("
                 SELECT TABLE_NAME
                 FROM INFORMATION_SCHEMA.TABLES
@@ -818,23 +809,21 @@ class DashboardController extends Controller
                 ], 404);
             }
 
-            
             $allTables = [
                 "Successfuliptsp." . $tables[0]->TABLE_NAME,
                 "Successfuliptsp." . $tables[1]->TABLE_NAME,
                 // "Successfuliptsp." . $tables[2]->TABLE_NAME,
             ];
 
-            
             $buildUnion = function($tableArray) {
                 return implode(" UNION ALL ", array_map(fn($t) => "SELECT * FROM $t", $tableArray));
             };
 
             $unionAll = "(" . $buildUnion($allTables) . ") AS cdr";
 
-          
+            
             $incoming = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_this_month
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0)) AS incoming_bill_this_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.66'
@@ -846,20 +835,22 @@ class DashboardController extends Controller
             $outgoing = DB::connection('mysql5')->selectOne("
                 SELECT 
                     ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_this_month,
-                    ROUND(SUM(orgBilledAmount), 0) AS outgoing_bill_this_month
+                    (ROUND(SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)))
+                    AS outgoing_bill_last_month
                 FROM $unionAll
-                WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
-                AND INET_NTOA(orgIPAddress) = '59.152.98.66'
+                WHERE INET_NTOA(orgIPAddress) != '59.152.98.70'
+                AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND FROM_UNIXTIME(connectTime/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE())
             ");
 
-            $revenueThisMonth = intval($incoming->incoming_bill_this_month ?? 0)
-                            + intval($outgoing->outgoing_bill_this_month ?? 0);
+            $grossProfit = intval($incoming->incoming_bill_this_month ?? 0)
+                        + intval($outgoing->outgoing_bill_this_month ?? 0);
 
+            
             $incomingLast = DB::connection('mysql5')->selectOne("
-                SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_last_month
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_last_month
                 FROM $unionAll
                 WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND INET_NTOA(terIPAddress) = '59.152.98.66'
@@ -871,28 +862,51 @@ class DashboardController extends Controller
             $outgoingLast = DB::connection('mysql5')->selectOne("
                 SELECT 
                     ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_last_month,
-                    ROUND(SUM(orgBilledAmount), 0) AS outgoing_bill_last_month
+                    (ROUND(SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END)))
+                        AS outgoing_bill_last_month
                 FROM $unionAll
-                WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
-                AND INET_NTOA(orgIPAddress) = '59.152.98.66'
+                WHERE INET_NTOA(orgIPAddress) != '59.152.98.70'
+                AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
                 AND FROM_UNIXTIME(connectTime/1000)
                         BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
                         AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
             ");
 
-            $revenueLastMonth = intval($incomingLast->incoming_bill_last_month ?? 0)
+            $grossProfitLast = intval($incomingLast->incoming_bill_last_month ?? 0)
                             + intval($outgoingLast->outgoing_bill_last_month ?? 0);
 
+            
+            $incomingToday = DB::connection('mysql5')->selectOne("
+                SELECT (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) - (ROUND((SUM(terBilledDuration)/60) * 0.1, 0) * 0.03)) AS incoming_bill_today
+                FROM $unionAll
+                WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+                AND INET_NTOA(terIPAddress) = '59.152.98.66'
+                AND DATE(FROM_UNIXTIME(connectTime/1000)) = CURDATE()
+            ");
+
+            $outgoingToday = DB::connection('mysql5')->selectOne("
+                SELECT (ROUND(SUM(CASE WHEN orgBilledAmount > 0 THEN orgBilledAmount END))) AS outgoing_bill_today
+                FROM $unionAll
+                WHERE INET_NTOA(orgIPAddress) != '59.152.98.70'
+                AND INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+                AND DATE(FROM_UNIXTIME(connectTime/1000)) = CURDATE()
+            ");
+
+            $currentDayGrossProfit = intval($incomingToday->incoming_bill_today ?? 0)
+                                + intval($outgoingToday->outgoing_bill_today ?? 0);
+
             return response()->json([
-                "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
+                // "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
                 "incoming_bill_this_month"    => intval($incoming->incoming_bill_this_month ?? 0),
                 "outgoing_bill_this_month"    => intval($outgoing->outgoing_bill_this_month ?? 0),
-                "revenue_this_month"          => $revenueThisMonth,
+                "gross_profit_this_month"     => intval($grossProfit),
 
-                "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
+                // "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
                 "incoming_bill_last_month"    => intval($incomingLast->incoming_bill_last_month ?? 0),
                 "outgoing_bill_last_month"    => intval($outgoingLast->outgoing_bill_last_month ?? 0),
-                "revenue_last_month"          => $revenueLastMonth,
+                "gross_profit_last_month"     => intval($grossProfitLast),
+
+                "current_day_gross_profit"    => intval($currentDayGrossProfit),
 
                 "tables_used" => [
                     "checked" => $allTables
@@ -909,6 +923,120 @@ class DashboardController extends Controller
             ], 500);
         }
     }
+
+    // public function revenueIptsp()
+    // {
+    //     try {
+
+            
+    //         $tables = DB::connection('mysql5')->select("
+    //             SELECT TABLE_NAME
+    //             FROM INFORMATION_SCHEMA.TABLES
+    //             WHERE TABLE_SCHEMA = 'Successfuliptsp'
+    //             AND TABLE_NAME LIKE 'vbSuccessfulCDR_%'
+    //             AND TABLE_NAME NOT LIKE '%_bkp%'
+    //             ORDER BY TABLE_NAME DESC
+    //             LIMIT 3
+    //         ");
+
+    //         if (count($tables) < 3) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => "Not enough CDR tables found"
+    //             ], 404);
+    //         }
+
+            
+    //         $allTables = [
+    //             "Successfuliptsp." . $tables[0]->TABLE_NAME,
+    //             "Successfuliptsp." . $tables[1]->TABLE_NAME,
+    //             // "Successfuliptsp." . $tables[2]->TABLE_NAME,
+    //         ];
+
+            
+    //         $buildUnion = function($tableArray) {
+    //             return implode(" UNION ALL ", array_map(fn($t) => "SELECT * FROM $t", $tableArray));
+    //         };
+
+    //         $unionAll = "(" . $buildUnion($allTables) . ") AS cdr";
+
+          
+    //         $incoming = DB::connection('mysql5')->selectOne("
+    //             SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_this_month
+    //             FROM $unionAll
+    //             WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+    //             AND INET_NTOA(terIPAddress) = '59.152.98.66'
+    //             AND FROM_UNIXTIME(connectTime/1000)
+    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
+    //                     AND LAST_DAY(CURDATE())
+    //         ");
+
+    //         $outgoing = DB::connection('mysql5')->selectOne("
+    //             SELECT 
+    //                 ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_this_month,
+    //                 ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) AS outgoing_bill_this_month
+    //             FROM $unionAll
+    //             WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+    //             AND INET_NTOA(orgIPAddress) = '59.152.98.66'
+    //             AND FROM_UNIXTIME(connectTime/1000)
+    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
+    //                     AND LAST_DAY(CURDATE())
+    //         ");
+
+    //         $revenueThisMonth = intval($incoming->incoming_bill_this_month ?? 0)
+    //                         + intval($outgoing->outgoing_bill_this_month ?? 0);
+
+    //         $incomingLast = DB::connection('mysql5')->selectOne("
+    //             SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_last_month
+    //             FROM $unionAll
+    //             WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+    //             AND INET_NTOA(terIPAddress) = '59.152.98.66'
+    //             AND FROM_UNIXTIME(connectTime/1000)
+    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
+    //                     AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
+    //         ");
+
+    //         $outgoingLast = DB::connection('mysql5')->selectOne("
+    //             SELECT 
+    //                 ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_last_month,
+    //                 ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) AS outgoing_bill_last_month
+    //             FROM $unionAll
+    //             WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
+    //             AND INET_NTOA(orgIPAddress) = '59.152.98.66'
+    //             AND FROM_UNIXTIME(connectTime/1000)
+    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
+    //                     AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
+    //         ");
+
+    //         $revenueLastMonth = intval($incomingLast->incoming_bill_last_month ?? 0)
+    //                         + intval($outgoingLast->outgoing_bill_last_month ?? 0);
+
+    //         return response()->json([
+    //             "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
+    //             "incoming_bill_this_month"    => intval($incoming->incoming_bill_this_month ?? 0),
+    //             "outgoing_bill_this_month"    => intval($outgoing->outgoing_bill_this_month ?? 0),
+    //             "revenue_this_month"          => $revenueThisMonth,
+
+    //             "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
+    //             "incoming_bill_last_month"    => intval($incomingLast->incoming_bill_last_month ?? 0),
+    //             "outgoing_bill_last_month"    => intval($outgoingLast->outgoing_bill_last_month ?? 0),
+    //             "revenue_last_month"          => $revenueLastMonth,
+
+    //             "tables_used" => [
+    //                 "checked" => $allTables
+    //             ],
+
+    //             "date_column_used" => "connectTime"
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "error"  => $e->getMessage(),
+    //             "line"   => $e->getLine()
+    //         ], 500);
+    //     }
+    // }
 
 
 
