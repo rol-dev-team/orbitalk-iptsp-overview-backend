@@ -56,14 +56,6 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found'], 404);
         }
 
-        $request->validate([
-            'username' => ['string', Rule::unique('users')->ignore($user->id)],
-            'full_name' => 'string',
-            'email' => ['email', Rule::unique('users')->ignore($user->id)],
-            'role_id' => 'integer',
-            'password' => 'nullable|min:6'
-        ]);
-
         $user->username = $request->username ?? $user->username;
         $user->full_name = $request->full_name ?? $user->full_name;
         $user->email = $request->email ?? $user->email;
