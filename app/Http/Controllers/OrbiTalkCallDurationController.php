@@ -276,6 +276,11 @@ class OrbiTalkCallDurationController extends Controller
             $filterOrbitalkToIptsp        = $request->orbitalk_to_iptsp ?? null;
             $filterOutgoingOrbitalkToGsm  = $request->outgoing_orbitalk_to_gsm ?? null;
 
+            $merged = [];
+            $totalIncoming = 0;
+            $totalOutgoing = 0;
+            $totalDuration = 0;
+
 
 
             $where = "";
@@ -300,7 +305,7 @@ class OrbiTalkCallDurationController extends Controller
                 AND INET_NTOA(orgIPAddress) = '59.152.98.70')";
             }
 
-            $merged = [];
+
 
             foreach ($tables as $table) {
 
@@ -323,7 +328,7 @@ class OrbiTalkCallDurationController extends Controller
                 $summary = DB::connection('mysql5')->selectOne("SELECT 
                 SUM(CASE WHEN INET_NTOA(terIPAddress) = '59.152.98.70' THEN 1 ELSE 0 END) AS total_incoming, 
                 SUM(CASE WHEN INET_NTOA(orgIPAddress) = '59.152.98.70' THEN 1 ELSE 0 END) AS total_outgoing, 
-                SUM(terBilledDuration / 60) AS total_duration 
+                ROUND(SUM(terBilledDuration / 60)) AS total_duration 
                 FROM $table WHERE FROM_UNIXTIME(connectTime / 1000) BETWEEN '$startDate 00:00:00' AND '$endDate 23:59:59' $where ");
 
                 $totalIncoming += $summary->total_incoming ?? 0;
@@ -333,7 +338,10 @@ class OrbiTalkCallDurationController extends Controller
 
             return response()->json([
                 'status' => true,
-                'data' => $merged,
+                'summary' => [ 'total_incoming' => $totalIncoming,
+                 'total_outgoing' => $totalOutgoing,
+                  'total_duration' => $totalDuration ],
+                  'data' => $merged,
                 'message' => "success"
             ]);
 
