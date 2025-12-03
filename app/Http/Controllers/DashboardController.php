@@ -924,120 +924,48 @@ class DashboardController extends Controller
         }
     }
 
-    // public function revenueIptsp()
-    // {
-    //     try {
+
+
+
+    public function callStats()
+    {
+        try {
 
             
-    //         $tables = DB::connection('mysql5')->select("
-    //             SELECT TABLE_NAME
-    //             FROM INFORMATION_SCHEMA.TABLES
-    //             WHERE TABLE_SCHEMA = 'Successfuliptsp'
-    //             AND TABLE_NAME LIKE 'vbSuccessfulCDR_%'
-    //             AND TABLE_NAME NOT LIKE '%_bkp%'
-    //             ORDER BY TABLE_NAME DESC
-    //             LIMIT 3
-    //         ");
-
-    //         if (count($tables) < 3) {
-    //             return response()->json([
-    //                 'status' => false,
-    //                 'message' => "Not enough CDR tables found"
-    //             ], 404);
-    //         }
+            $activeCalls = DB::connection('mysql5')->select("
+                SELECT COUNT(ID) AS Active_Calls 
+                FROM iTelBillingiptsp.vbRunningCall
+            ");
 
             
-    //         $allTables = [
-    //             "Successfuliptsp." . $tables[0]->TABLE_NAME,
-    //             "Successfuliptsp." . $tables[1]->TABLE_NAME,
-    //             // "Successfuliptsp." . $tables[2]->TABLE_NAME,
-    //         ];
+            $liveCalls = DB::connection('mysql5')->select("
+                SELECT COUNT(*) AS liveCalls
+                FROM vbRunningCall
+                WHERE connectTime IS NOT NULL
+            ");
 
             
-    //         $buildUnion = function($tableArray) {
-    //             return implode(" UNION ALL ", array_map(fn($t) => "SELECT * FROM $t", $tableArray));
-    //         };
+            $onProcessing = DB::connection('mysql5')->select("
+                SELECT COUNT(*) AS onProcessing
+                FROM vbRunningCall
+                WHERE connectTime IS NULL
+            ");
 
-    //         $unionAll = "(" . $buildUnion($allTables) . ") AS cdr";
+            return response()->json([
+                'status' => true,
+                'active_calls' => $activeCalls[0]->Active_Calls ?? 0,
+                'live_calls' => $liveCalls[0]->liveCalls ?? 0,
+                'on_processing' => $onProcessing[0]->onProcessing ?? 0
+            ]);
 
-          
-    //         $incoming = DB::connection('mysql5')->selectOne("
-    //             SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_this_month
-    //             FROM $unionAll
-    //             WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
-    //             AND INET_NTOA(terIPAddress) = '59.152.98.66'
-    //             AND FROM_UNIXTIME(connectTime/1000)
-    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
-    //                     AND LAST_DAY(CURDATE())
-    //         ");
-
-    //         $outgoing = DB::connection('mysql5')->selectOne("
-    //             SELECT 
-    //                 ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_this_month,
-    //                 ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) AS outgoing_bill_this_month
-    //             FROM $unionAll
-    //             WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
-    //             AND INET_NTOA(orgIPAddress) = '59.152.98.66'
-    //             AND FROM_UNIXTIME(connectTime/1000)
-    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 1 MONTH) + INTERVAL 1 DAY
-    //                     AND LAST_DAY(CURDATE())
-    //         ");
-
-    //         $revenueThisMonth = intval($incoming->incoming_bill_this_month ?? 0)
-    //                         + intval($outgoing->outgoing_bill_this_month ?? 0);
-
-    //         $incomingLast = DB::connection('mysql5')->selectOne("
-    //             SELECT ROUND((SUM(terBilledDuration)/60) * 0.1, 0) AS incoming_bill_last_month
-    //             FROM $unionAll
-    //             WHERE INET_NTOA(orgIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
-    //             AND INET_NTOA(terIPAddress) = '59.152.98.66'
-    //             AND FROM_UNIXTIME(connectTime/1000)
-    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
-    //                     AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
-    //         ");
-
-    //         $outgoingLast = DB::connection('mysql5')->selectOne("
-    //             SELECT 
-    //                 ROUND(SUM(orgBilledDuration)/60, 0) AS outgoing_minutes_last_month,
-    //                 ROUND((SUM(orgBilledDuration)/60) * 0.35, 0) AS outgoing_bill_last_month
-    //             FROM $unionAll
-    //             WHERE INET_NTOA(terIPAddress) IN ('10.246.29.66','10.246.29.74','172.20.15.106')
-    //             AND INET_NTOA(orgIPAddress) = '59.152.98.66'
-    //             AND FROM_UNIXTIME(connectTime/1000)
-    //                     BETWEEN LAST_DAY(CURDATE() - INTERVAL 2 MONTH) + INTERVAL 1 DAY
-    //                     AND LAST_DAY(CURDATE() - INTERVAL 1 MONTH)
-    //         ");
-
-    //         $revenueLastMonth = intval($incomingLast->incoming_bill_last_month ?? 0)
-    //                         + intval($outgoingLast->outgoing_bill_last_month ?? 0);
-
-    //         return response()->json([
-    //             "outgoing_minutes_this_month" => intval($outgoing->outgoing_minutes_this_month ?? 0),
-    //             "incoming_bill_this_month"    => intval($incoming->incoming_bill_this_month ?? 0),
-    //             "outgoing_bill_this_month"    => intval($outgoing->outgoing_bill_this_month ?? 0),
-    //             "revenue_this_month"          => $revenueThisMonth,
-
-    //             "outgoing_minutes_last_month" => intval($outgoingLast->outgoing_minutes_last_month ?? 0),
-    //             "incoming_bill_last_month"    => intval($incomingLast->incoming_bill_last_month ?? 0),
-    //             "outgoing_bill_last_month"    => intval($outgoingLast->outgoing_bill_last_month ?? 0),
-    //             "revenue_last_month"          => $revenueLastMonth,
-
-    //             "tables_used" => [
-    //                 "checked" => $allTables
-    //             ],
-
-    //             "date_column_used" => "connectTime"
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             "status" => false,
-    //             "error"  => $e->getMessage(),
-    //             "line"   => $e->getLine()
-    //         ], 500);
-    //     }
-    // }
-
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
 
 
 }
