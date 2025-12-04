@@ -7,7 +7,20 @@ use App\Http\Controllers\OrbiTalkCallDurationController;
 use App\Http\Controllers\IptspCallDurationController;
 use App\Http\Controllers\OrbitalkReportController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AuthController;
 
+// PUBLIC routes
+Route::post('/login', [AuthController::class, 'login']);
+
+// PROTECTED routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Example: protected user info
+    Route::get('/user', function () {
+        return auth()->user();
+    });
+});
 // orbitalk dashboard
 
 Route::get('/dashboard/recharged-amount', [DashboardController::class, 'DashboardRechargedAmount']);
