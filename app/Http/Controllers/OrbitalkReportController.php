@@ -319,14 +319,30 @@ class OrbitalkReportController extends Controller
             
             $tables = filterRangeWithNext($mapping, $startMonth, $endMonth);
             
+            // if (empty($tables)) {
+                
+            //     $tables = [
+            //         $mapping[array_key_first($mapping)] ?? null,
+            //         $mapping[array_key_next($mapping)] ?? null
+            //     ];
+            //     $tables = array_filter($tables);
+                
+            //     if (empty($tables)) {
+            //         return response()->json([
+            //             'status' => false,
+            //             'message' => "No CDR tables found"
+            //         ], 404);
+            //     }
+            // }
+
+
             if (empty($tables)) {
-                
-                $tables = [
-                    $mapping[array_key_first($mapping)] ?? null,
-                    $mapping[array_key_next($mapping)] ?? null
-                ];
-                $tables = array_filter($tables);
-                
+
+                // Get first 2 values from $mapping
+                $firstTwo = array_slice(array_values($mapping), 0, 2);
+
+                $tables = array_filter($firstTwo);
+
                 if (empty($tables)) {
                     return response()->json([
                         'status' => false,
@@ -334,6 +350,7 @@ class OrbitalkReportController extends Controller
                     ], 404);
                 }
             }
+
 
             
             $allTables = array_map(function($tableName) {
@@ -488,13 +505,12 @@ class OrbitalkReportController extends Controller
             $tables = filterRangeWithNext($mapping, $startMonth, $endMonth);
             
             if (empty($tables)) {
+
                 
-                $tables = [
-                    $mapping[array_key_first($mapping)] ?? null,
-                    $mapping[array_key_next($mapping)] ?? null
-                ];
-                $tables = array_filter($tables);
-                
+                $firstTwo = array_slice(array_values($mapping), 0, 2);
+
+                $tables = array_filter($firstTwo);
+
                 if (empty($tables)) {
                     return response()->json([
                         'status' => false,
@@ -502,6 +518,7 @@ class OrbitalkReportController extends Controller
                     ], 404);
                 }
             }
+
 
             
             $allTables = array_map(function($tableName) {
@@ -1072,13 +1089,12 @@ class OrbitalkReportController extends Controller
             $tables = filterRangeWithNext($mapping, $startMonth, $endMonth);
             
             if (empty($tables)) {
+
                 
-                $tables = [
-                    $mapping[array_key_first($mapping)] ?? null,
-                    $mapping[array_key_next($mapping)] ?? null
-                ];
-                $tables = array_filter($tables);
-                
+                $firstTwo = array_slice(array_values($mapping), 0, 2);
+
+                $tables = array_filter($firstTwo);
+
                 if (empty($tables)) {
                     return response()->json([
                         'status' => false,
@@ -1086,6 +1102,7 @@ class OrbitalkReportController extends Controller
                     ], 404);
                 }
             }
+
 
             
             $allTables = array_map(function($tableName) {
@@ -1289,13 +1306,12 @@ class OrbitalkReportController extends Controller
             $tables = filterRangeWithNext($mapping, $startMonth, $endMonth);
             
             if (empty($tables)) {
+
                 
-                $tables = [
-                    $mapping[array_key_first($mapping)] ?? null,
-                    $mapping[array_key_next($mapping)] ?? null
-                ];
-                $tables = array_filter($tables);
-                
+                $firstTwo = array_slice(array_values($mapping), 0, 2);
+
+                $tables = array_filter($firstTwo);
+
                 if (empty($tables)) {
                     return response()->json([
                         'status' => false,
@@ -1303,6 +1319,7 @@ class OrbitalkReportController extends Controller
                     ], 404);
                 }
             }
+
 
             
             $allTables = array_map(function($tableName) {
