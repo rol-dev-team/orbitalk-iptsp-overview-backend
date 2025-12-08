@@ -136,6 +136,8 @@ class OrbitalkReportController extends Controller
 
 
 
+    // date wise payment report orbitalk
+
     public function paymentReport(Request $request)
     {
         try {
@@ -618,6 +620,69 @@ class OrbitalkReportController extends Controller
             ], 500);
         }
     }
+
+
+    public function getClients(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $phone = $request->input('phone');
+        $callerid = $request->input('callerid');
+        $nid = $request->input('nid');
+
+        
+        if (!$startDate || !$endDate) {
+            $startDate = now()->subDays(7)->format('Y-m-d');
+            $endDate = now()->format('Y-m-d');
+        }
+
+        
+        $where = "c.clCustomerID LIKE '8801%' AND c.clIsDeleted = 0 AND ci.ciIsDeleted = 0 AND c.clStatus = 1
+                AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') BETWEEN '$startDate' AND '$endDate'";
+
+        if ($phone) {
+            $where .= " AND c.clCustomerID LIKE '%$phone%'";
+        }
+        if ($callerid) {
+            $where .= " AND ci.ciCallerIDCode LIKE '%$callerid%'";
+        }
+        if ($nid) {
+            $where .= " AND vc.cdReferenceFormNo LIKE '%$nid%'";
+        }
+
+        
+        $clients = DB::connection('mysql5')->select("
+            SELECT DISTINCT
+                c.clCustomerID AS phone,
+                ci.ciCallerIDCode AS callerid,
+                vc.cdReferenceFormNo AS nid,
+                FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d %H:%i:%s') AS createddate
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE $where
+            ORDER BY vc.cdLastModificationTime DESC
+        ");
+
+        
+        $countResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS total
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE $where
+        ");
+        $totalCount = $countResult[0]->total ?? 0;
+
+        return response()->json([
+            'totalCount' => $totalCount,
+            'clients' => $clients
+        ]);
+    }
+
+
+
+    
 
 
 
@@ -1367,6 +1432,66 @@ class OrbitalkReportController extends Controller
         }
     }
 
+
+
+    
+    public function getClientsIptsp(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $phone = $request->input('phone');
+        $callerid = $request->input('callerid');
+        $nid = $request->input('nid');
+
+        
+        if (!$startDate || !$endDate) {
+            $startDate = now()->subDays(7)->format('Y-m-d');
+            $endDate = now()->format('Y-m-d');
+        }
+
+        
+        $where = "c.clCustomerID NOT LIKE '8801%' AND c.clIsDeleted = 0 AND ci.ciIsDeleted = 0 AND c.clStatus = 1
+                AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') BETWEEN '$startDate' AND '$endDate'";
+
+        if ($phone) {
+            $where .= " AND c.clCustomerID LIKE '%$phone%'";
+        }
+        if ($callerid) {
+            $where .= " AND ci.ciCallerIDCode LIKE '%$callerid%'";
+        }
+        if ($nid) {
+            $where .= " AND vc.cdReferenceFormNo LIKE '%$nid%'";
+        }
+
+        
+        $clients = DB::connection('mysql5')->select("
+            SELECT DISTINCT
+                c.clCustomerID AS phone,
+                ci.ciCallerIDCode AS callerid,
+                vc.cdReferenceFormNo AS nid,
+                FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d %H:%i:%s') AS createddate
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE $where
+            ORDER BY vc.cdLastModificationTime DESC
+        ");
+
+        
+        $countResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS total
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE $where
+        ");
+        $totalCount = $countResult[0]->total ?? 0;
+
+        return response()->json([
+            'totalCount' => $totalCount,
+            'clients' => $clients
+        ]);
+    }
 
 
 }

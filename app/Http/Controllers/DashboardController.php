@@ -442,7 +442,59 @@ class DashboardController extends Controller
     }
 
 
+    public function getClientCounts()
+    {
+        
+        $totalClientsResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS totalClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+        ");
+        $totalClients = $totalClientsResult[0]->totalClients ?? 0;
 
+        
+        $currentMonthResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS currentMonthClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+                BETWEEN DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') AND LAST_DAY(CURRENT_DATE())
+        ");
+        $currentMonthClients = $currentMonthResult[0]->currentMonthClients ?? 0;
+
+        
+        $lastMonthResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS lastMonthClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+                BETWEEN DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                    AND LAST_DAY(CURRENT_DATE() - INTERVAL 1 MONTH)
+        ");
+        $lastMonthClients = $lastMonthResult[0]->lastMonthClients ?? 0;
+
+        return response()->json([
+            'totalClients' => $totalClients,
+            'currentMonthClients' => $currentMonthClients,
+            'lastMonthClients' => $lastMonthClients,
+        ]);
+    }
+    
 
     public function DashboardRechargedAmountIptsp(Request $request)
     {
@@ -967,6 +1019,58 @@ class DashboardController extends Controller
     }
     
 
+    public function getClientCountsIptsp()
+    {
+        
+        $totalClientsResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS totalClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID NOT LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+        ");
+        $totalClients = $totalClientsResult[0]->totalClients ?? 0;
+
+        
+        $currentMonthResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS currentMonthClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID NOT LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+                BETWEEN DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') AND LAST_DAY(CURRENT_DATE())
+        ");
+        $currentMonthClients = $currentMonthResult[0]->currentMonthClients ?? 0;
+
+        
+        $lastMonthResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS lastMonthClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID NOT LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+                BETWEEN DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                    AND LAST_DAY(CURRENT_DATE() - INTERVAL 1 MONTH)
+        ");
+        $lastMonthClients = $lastMonthResult[0]->lastMonthClients ?? 0;
+
+        return response()->json([
+            'totalClients' => $totalClients,
+            'currentMonthClients' => $currentMonthClients,
+            'lastMonthClients' => $lastMonthClients,
+        ]);
+    }
 
 }
 

@@ -12,7 +12,10 @@ use App\Http\Controllers\OrbitalkReportController;
 Route::get('/dashboard/recharged-amount', [DashboardController::class, 'DashboardRechargedAmount']);
 Route::get('/dashboard/gross-profit', [DashboardController::class, 'grossProfit']);
 Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
+Route::get('/dashboard/regester-user', [DashboardController::class, 'getClientCounts']);
 
+
+//for both orbitalk and iptsp
 
 Route::get('/dashboard/call-status', [DashboardController::class, 'callStats']);
 
@@ -22,20 +25,23 @@ Route::get('/dashboard/call-status', [DashboardController::class, 'callStats']);
 Route::get('/dashboard/iptsp/recharged-amount', [DashboardController::class, 'DashboardRechargedAmountIptsp']);
 Route::get('/dashboard/iptsp/gross-profit', [DashboardController::class, 'grossProfitIptsp']);
 Route::get('/dashboard/iptsp/revenue', [DashboardController::class, 'revenueIptsp']);
+Route::get('/dashboard/iptsp/regester-user', [DashboardController::class, 'getClientCountsIptsp']);
 
 //orbitalk report
 
-Route::get('/payment-report/date-wise', [OrbitalkReportController::class, 'paymentReport']);
+Route::get('/recharged-report/date-wise', [OrbitalkReportController::class, 'paymentReport']);
 Route::get('/gross-profit/date-wise', [OrbitalkReportController::class, 'dateWiseGrossProfit']);
 Route::get('/revenue/date-wise', [OrbitalkReportController::class, 'dateWiseRevenue']);
+Route::get('/clients', [OrbitalkReportController::class, 'getClients']);
 
 
 
 //iptsp report
 
-Route::get('/payment-report/iptsp/date-wise', [OrbitalkReportController::class, 'paymentReport']);
+Route::get('/recharged-report/iptsp/date-wise', [OrbitalkReportController::class, 'paymentReport']);
 Route::get('/gross-profit/iptsp/date-wise', [OrbitalkReportController::class, 'dateWiseGrossProfitIptsp']);
 Route::get('/revenue/iptsp/date-wise', [OrbitalkReportController::class, 'dateWiseRevenueIptsp']);
+Route::get('/iptsp/clients', [OrbitalkReportController::class, 'getClientsIptsp']);
 
 
 
