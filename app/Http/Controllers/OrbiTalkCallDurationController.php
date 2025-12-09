@@ -362,6 +362,10 @@ class OrbiTalkCallDurationController extends Controller
             $tableNamesWithMonth = filterRangeWithNext($mapping, $start, $end);
             $tables = array_values($tableNamesWithMonth);
 
+
+            // return $tables;
+
+
             $startDate = $request->start_date ?? '2025-10-01';
             $endDate   = $request->end_date ?? '2025-10-31';
 
