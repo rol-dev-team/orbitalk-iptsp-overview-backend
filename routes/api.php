@@ -43,9 +43,11 @@ Route::get('/dashboard/iptsp/regester-user', [DashboardController::class, 'getCl
 
 //orbitalk report
 
-Route::get('/recharged-report/date-wise', [OrbitalkReportController::class, 'paymentReport']);
-// Route::get('/revenue/date-wise', [OrbitalkReportController::class, 'dateWiseRevenue']);
 Route::get('/clients', [OrbitalkReportController::class, 'getClients']);
+
+
+Route::get('/payment-report/date-wise', [OrbitalkReportController::class, 'paymentReport']);
+Route::get('/payment-report/date-wise/export', [OrbitalkReportController::class, 'exportPaymentReport']);
 
 Route::get('/gross-profit/date-wise', [OrbitalkReportController::class, 'dateWiseGrossProfit']);
 Route::get('/gross-profit/date-wise/export', [OrbitalkReportController::class, 'exportDateWiseGrossProfit']);
@@ -57,17 +59,18 @@ Route::get('/revenue/date-wise/export', [OrbitalkReportController::class, 'expor
 
 //iptsp report
 
-Route::get('/recharged-report/iptsp/date-wise', [OrbitalkReportController::class, 'paymentReport']);
-// Route::get('/revenue/iptsp/date-wise', [OrbitalkReportController::class, 'dateWiseRevenueIptsp']);
 Route::get('/iptsp/clients', [OrbitalkReportController::class, 'getClientsIptsp']);
+
+Route::get('/recharge-report/date-wise', [OrbitalkReportController::class, 'dateWiseRechargedAmountIptsp']);
+Route::get('/recharge-report/date-wise/export', [OrbitalkReportController::class, 'exportDateWiseRechargedAmountIptsp']);
 
 
 Route::get('/gross-profit/iptsp/date-wise', [OrbitalkReportController::class, 'dateWiseGrossProfitIptsp']);
 Route::get('/gross-profit/iptsp/date-wise/export', [OrbitalkReportController::class, 'exportDateWiseGrossProfitIptsp']);
 
 
-Route::get('/revenue/iptsp/date-wise', [ReportController::class, 'dateWiseRevenueIptsp']);
-Route::get('/revenue/iptsp/date-wise/export', [ReportController::class, 'exportDateWiseRevenueIptsp']);
+Route::get('/revenue/iptsp/date-wise', [OrbitalkReportController::class, 'dateWiseRevenueIptsp']);
+Route::get('/revenue/iptsp/date-wise/export', [OrbitalkReportController::class, 'exportDateWiseRevenueIptsp']);
 
 
 
