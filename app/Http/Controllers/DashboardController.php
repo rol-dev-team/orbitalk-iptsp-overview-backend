@@ -442,9 +442,63 @@ class DashboardController extends Controller
     }
 
 
+    // public function getClientCounts()
+    // {
+        
+    //     $totalClientsResult = DB::connection('mysql5')->select("
+    //         SELECT COUNT(DISTINCT c.clCustomerID) AS totalClients
+    //         FROM iTelBillingiptsp.vbClient c
+    //         LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+    //         LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+    //         WHERE c.clCustomerID LIKE '8801%'
+    //         AND c.clIsDeleted = 0
+    //         AND ci.ciIsDeleted = 0
+    //         AND c.clStatus = 1
+    //     ");
+    //     $totalClients = $totalClientsResult[0]->totalClients ?? 0;
+
+        
+    //     $currentMonthResult = DB::connection('mysql5')->select("
+    //         SELECT COUNT(DISTINCT c.clCustomerID) AS currentMonthClients
+    //         FROM iTelBillingiptsp.vbClient c
+    //         LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+    //         LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+    //         WHERE c.clCustomerID LIKE '8801%'
+    //         AND c.clIsDeleted = 0
+    //         AND ci.ciIsDeleted = 0
+    //         AND c.clStatus = 1
+    //         AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+    //             BETWEEN DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') AND LAST_DAY(CURRENT_DATE())
+    //     ");
+    //     $currentMonthClients = $currentMonthResult[0]->currentMonthClients ?? 0;
+
+        
+    //     $lastMonthResult = DB::connection('mysql5')->select("
+    //         SELECT COUNT(DISTINCT c.clCustomerID) AS lastMonthClients
+    //         FROM iTelBillingiptsp.vbClient c
+    //         LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+    //         LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+    //         WHERE c.clCustomerID LIKE '8801%'
+    //         AND c.clIsDeleted = 0
+    //         AND ci.ciIsDeleted = 0
+    //         AND c.clStatus = 1
+    //         AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+    //             BETWEEN DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+    //                 AND LAST_DAY(CURRENT_DATE() - INTERVAL 1 MONTH)
+    //     ");
+    //     $lastMonthClients = $lastMonthResult[0]->lastMonthClients ?? 0;
+
+    //     return response()->json([
+    //         'totalClients' => $totalClients,
+    //         'currentMonthClients' => $currentMonthClients,
+    //         'lastMonthClients' => $lastMonthClients,
+    //     ]);
+    // }
+
+
     public function getClientCounts()
     {
-        
+        // Total Clients
         $totalClientsResult = DB::connection('mysql5')->select("
             SELECT COUNT(DISTINCT c.clCustomerID) AS totalClients
             FROM iTelBillingiptsp.vbClient c
@@ -457,7 +511,8 @@ class DashboardController extends Controller
         ");
         $totalClients = $totalClientsResult[0]->totalClients ?? 0;
 
-        
+
+        // Current Month Clients
         $currentMonthResult = DB::connection('mysql5')->select("
             SELECT COUNT(DISTINCT c.clCustomerID) AS currentMonthClients
             FROM iTelBillingiptsp.vbClient c
@@ -467,12 +522,13 @@ class DashboardController extends Controller
             AND c.clIsDeleted = 0
             AND ci.ciIsDeleted = 0
             AND c.clStatus = 1
-            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+            AND DATE(FROM_UNIXTIME(vc.cdLastModificationTime/1000))
                 BETWEEN DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') AND LAST_DAY(CURRENT_DATE())
         ");
         $currentMonthClients = $currentMonthResult[0]->currentMonthClients ?? 0;
 
-        
+
+        // Last Month Clients
         $lastMonthResult = DB::connection('mysql5')->select("
             SELECT COUNT(DISTINCT c.clCustomerID) AS lastMonthClients
             FROM iTelBillingiptsp.vbClient c
@@ -482,18 +538,46 @@ class DashboardController extends Controller
             AND c.clIsDeleted = 0
             AND ci.ciIsDeleted = 0
             AND c.clStatus = 1
-            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+            AND DATE(FROM_UNIXTIME(vc.cdLastModificationTime/1000))
                 BETWEEN DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')
                     AND LAST_DAY(CURRENT_DATE() - INTERVAL 1 MONTH)
         ");
         $lastMonthClients = $lastMonthResult[0]->lastMonthClients ?? 0;
 
+
+        // ⭐ NEW 1: Today's Created Clients
+        $todayClientsResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS todaysCreatedClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+            AND DATE(FROM_UNIXTIME(vc.cdLastModificationTime/1000)) = CURRENT_DATE()
+        ");
+        $todaysCreatedClients = $todayClientsResult[0]->todaysCreatedClients ?? 0;
+
+
+        // ⭐ NEW 2: Last Month Average Clients Per Day
+        $daysInLastMonth = date("t", strtotime("first day of last month"));
+        $lastMonthAvgClient = $daysInLastMonth > 0
+            ? round($lastMonthClients / $daysInLastMonth, 2)
+            : 0;
+
+
         return response()->json([
             'totalClients' => $totalClients,
             'currentMonthClients' => $currentMonthClients,
             'lastMonthClients' => $lastMonthClients,
+
+            // new outputs
+            'todays_created_client' => $todaysCreatedClients,
+            'last_month_avg_client' => $lastMonthAvgClient,
         ]);
     }
+
     
 
     public function DashboardRechargedAmountIptsp(Request $request)
@@ -1019,9 +1103,63 @@ class DashboardController extends Controller
     }
     
 
+    // public function getClientCountsIptsp()
+    // {
+        
+    //     $totalClientsResult = DB::connection('mysql5')->select("
+    //         SELECT COUNT(DISTINCT c.clCustomerID) AS totalClients
+    //         FROM iTelBillingiptsp.vbClient c
+    //         LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+    //         LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+    //         WHERE c.clCustomerID NOT LIKE '8801%'
+    //         AND c.clIsDeleted = 0
+    //         AND ci.ciIsDeleted = 0
+    //         AND c.clStatus = 1
+    //     ");
+    //     $totalClients = $totalClientsResult[0]->totalClients ?? 0;
+
+        
+    //     $currentMonthResult = DB::connection('mysql5')->select("
+    //         SELECT COUNT(DISTINCT c.clCustomerID) AS currentMonthClients
+    //         FROM iTelBillingiptsp.vbClient c
+    //         LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+    //         LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+    //         WHERE c.clCustomerID NOT LIKE '8801%'
+    //         AND c.clIsDeleted = 0
+    //         AND ci.ciIsDeleted = 0
+    //         AND c.clStatus = 1
+    //         AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+    //             BETWEEN DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') AND LAST_DAY(CURRENT_DATE())
+    //     ");
+    //     $currentMonthClients = $currentMonthResult[0]->currentMonthClients ?? 0;
+
+        
+    //     $lastMonthResult = DB::connection('mysql5')->select("
+    //         SELECT COUNT(DISTINCT c.clCustomerID) AS lastMonthClients
+    //         FROM iTelBillingiptsp.vbClient c
+    //         LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+    //         LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+    //         WHERE c.clCustomerID NOT LIKE '8801%'
+    //         AND c.clIsDeleted = 0
+    //         AND ci.ciIsDeleted = 0
+    //         AND c.clStatus = 1
+    //         AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+    //             BETWEEN DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+    //                 AND LAST_DAY(CURRENT_DATE() - INTERVAL 1 MONTH)
+    //     ");
+    //     $lastMonthClients = $lastMonthResult[0]->lastMonthClients ?? 0;
+
+    //     return response()->json([
+    //         'totalClients' => $totalClients,
+    //         'currentMonthClients' => $currentMonthClients,
+    //         'lastMonthClients' => $lastMonthClients,
+    //     ]);
+    // }
+
+
     public function getClientCountsIptsp()
     {
-        
+        // Total Clients
         $totalClientsResult = DB::connection('mysql5')->select("
             SELECT COUNT(DISTINCT c.clCustomerID) AS totalClients
             FROM iTelBillingiptsp.vbClient c
@@ -1034,7 +1172,8 @@ class DashboardController extends Controller
         ");
         $totalClients = $totalClientsResult[0]->totalClients ?? 0;
 
-        
+
+        // Current Month Clients
         $currentMonthResult = DB::connection('mysql5')->select("
             SELECT COUNT(DISTINCT c.clCustomerID) AS currentMonthClients
             FROM iTelBillingiptsp.vbClient c
@@ -1044,12 +1183,13 @@ class DashboardController extends Controller
             AND c.clIsDeleted = 0
             AND ci.ciIsDeleted = 0
             AND c.clStatus = 1
-            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+            AND DATE(FROM_UNIXTIME(vc.cdLastModificationTime/1000))
                 BETWEEN DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') AND LAST_DAY(CURRENT_DATE())
         ");
         $currentMonthClients = $currentMonthResult[0]->currentMonthClients ?? 0;
 
-        
+
+        // Last Month Clients
         $lastMonthResult = DB::connection('mysql5')->select("
             SELECT COUNT(DISTINCT c.clCustomerID) AS lastMonthClients
             FROM iTelBillingiptsp.vbClient c
@@ -1059,18 +1199,46 @@ class DashboardController extends Controller
             AND c.clIsDeleted = 0
             AND ci.ciIsDeleted = 0
             AND c.clStatus = 1
-            AND FROM_UNIXTIME(vc.cdLastModificationTime/1000, '%Y-%m-%d') 
+            AND DATE(FROM_UNIXTIME(vc.cdLastModificationTime/1000))
                 BETWEEN DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH, '%Y-%m-01')
                     AND LAST_DAY(CURRENT_DATE() - INTERVAL 1 MONTH)
         ");
         $lastMonthClients = $lastMonthResult[0]->lastMonthClients ?? 0;
 
+
+        // ⭐ NEW 1: Today's Created Clients
+        $todayClientsResult = DB::connection('mysql5')->select("
+            SELECT COUNT(DISTINCT c.clCustomerID) AS todaysCreatedClients
+            FROM iTelBillingiptsp.vbClient c
+            LEFT JOIN iTelBillingiptsp.vbCallerID ci ON ci.ciAccountID = c.clAccountID
+            LEFT JOIN iTelBillingiptsp.vbClientDetails vc ON vc.cdClientAccountID = c.clAccountID
+            WHERE c.clCustomerID NOT LIKE '8801%'
+            AND c.clIsDeleted = 0
+            AND ci.ciIsDeleted = 0
+            AND c.clStatus = 1
+            AND DATE(FROM_UNIXTIME(vc.cdLastModificationTime/1000)) = CURRENT_DATE()
+        ");
+        $todaysCreatedClients = $todayClientsResult[0]->todaysCreatedClients ?? 0;
+
+
+        // ⭐ NEW 2: Last Month Average Clients Per Day
+        $daysInLastMonth = date("t", strtotime("first day of last month"));
+        $lastMonthAvgClient = $daysInLastMonth > 0
+            ? round($lastMonthClients / $daysInLastMonth, 2)
+            : 0;
+
+
         return response()->json([
             'totalClients' => $totalClients,
             'currentMonthClients' => $currentMonthClients,
             'lastMonthClients' => $lastMonthClients,
+
+            // new outputs
+            'todays_created_client' => $todaysCreatedClients,
+            'last_month_avg_client' => $lastMonthAvgClient,
         ]);
     }
+
 
 }
 
